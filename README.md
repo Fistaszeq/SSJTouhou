@@ -12,4 +12,4 @@ Wymagania:
 
 Przykład kompilacji:
 ```sh
-g++ [SSJTouhou.cpp](http://_vscodecontentref_/0) -o SSJTouhou -lsfml-graphics -lsfml-window -lsfml-system
+g++ SSJTouhou.cpp -o SSJTouhou -lsfml-graphics -lsfml-window -lsfml-system
