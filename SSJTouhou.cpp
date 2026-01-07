@@ -1,166 +1,328 @@
 #include <iostream>
 #include <vector>
 #include <SFML/Graphics.hpp>
-#include <string.h>
 #include <random>
 
-/*
-- - - - - - - - - - -
-Author: Fistaszeq
-- - - - - - - - - - - 
-*/
-// Schowek
-float speed = 1.5;
+// ==================
+// KONFIGURACJA
+// ==================
+float speed = 1.5f;
+float speed_bullet = 1.5f;
+float move = 3.f;
+float dmg = 2.f;
 
+float hp = 100;     // HP gracza
+int ki = 100;     // POWER
+int max_ki = 100;
+int score = 0;
+bool first = true;
+std::vector<int> res = {800, 900};
+std::string title = "Touhou-like";
 
-// Resolution and title
-std::vector<int> res = {800,600};
-std::string title = "Touhou";
-//
-
-// Object with x and y. Also path to image.
+// ==================
+// STRUKTURA OBIEKTU
+// ==================
 struct obiekty
 {
     float x;
     float y;
-    std::string scieszka_grafiki;
+    float hp;
+    float max_hp;
 };
-// // //
 
-
-
-
-
-
-// Function to manimpulate object +- xy move
-// # Oraz Kolizje z ramkami okna, ramy wspiane na sztywno bo res[] nie gloablny
-void sterowanie_obiekt(obiekty &gracz)
+// ==================
+// RANDOM
+// ==================
+int randint(int min, int max)
 {
-    // Size of image
-    sf::Texture obrazek;
-    obrazek.loadFromFile(gracz.scieszka_grafiki);
-    sf::Vector2u size = obrazek.getSize();
-    // // //
-
-
-    // Moving
-    float move = 3;    
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A) and gracz.x >= 0)
-    {
-        gracz.x -= move;
-    }
-
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::D) and gracz.x <= res[0] - size.x)
-    {
-        gracz.x += move;
-    }
-    
-     if (sf::Keyboard::isKeyPressed(sf::Keyboard::S) and gracz.y <= res[1] - size.y)
-    {
-        gracz.y += move;
-    }
-    
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::W) and gracz.y >= 0)
-    {
-        gracz.y -= move;
-    } 
-    // // //
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(min, max);
+    return dist(gen);
 }
-// randint
-int randint(int min,int max)
+
+// ==================
+// KOLIZJA
+// ==================
+bool kolizja(sf::Sprite a, sf::Sprite b)
 {
-    // Źródło losowości
-    std::random_device rd;
-    std::mt19937 gen(rd()); // <- Generator
-
-    std::uniform_int_distribution<> dist(min,max); // Zakres
-    int r = dist(gen);// Zapakowanie w zmienną
-    return r;
+    return a.getGlobalBounds().intersects(b.getGlobalBounds());
 }
-// // //
 
+// ==================
+// STEROWANIE
+// ==================
+void sterowanie(obiekty &g, sf::Vector2u size)
+{
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A) && g.x > 0)
+        g.x -= move;
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::D) && g.x < res[0] - size.x)
+        g.x += move;
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::W) && g.y > 0)
+        g.y -= move;
+    if(sf::Keyboard::isKeyPressed(sf::Keyboard::S) && g.y < res[1] - size.y)
+        g.y += move;
+}
 
+// ==================
+// MAIN
+// ==================
 int main()
-{   
-    // Okno root 
-    sf::RenderWindow root(sf::VideoMode(res[0],res[1]),title);
-    // // // 
-
-    // Frame rate -> 60
+{
+    sf::RenderWindow root(sf::VideoMode(res[0], res[1]), title);
     root.setFramerateLimit(60);
-    // // // 
 
-    // Tworzymy gracza po srodku mapy
+    // ==================
+    // TEKSTURA
+    // ==================
+    sf::Texture tex;
+    tex.loadFromFile("glaz2.png");
+
+    sf::Texture blast;
+    blast.loadFromFile("white_roock.png");
+
+    sf::Texture baze;
+    baze.loadFromFile("Goku-1.png.png");
+
+    sf::Texture ssj1;
+    ssj1.loadFromFile("Goku-2.png.png");
+
+    sf::Texture ssjB;
+    ssjB.loadFromFile("Goku-3.png.png");
+
+    // ==================
+    // GRACZ
+    // ==================
     obiekty gracz;
     gracz.x = res[0] / 2;
-    gracz.y = res[1] / 2 + 100;
-    gracz.scieszka_grafiki = "white_roock.png";
+    gracz.y = res[1] - 100;
 
-    sf::Texture player_texture;
-    player_texture.loadFromFile(gracz.scieszka_grafiki);
+    sf::Sprite player(baze);
+    player.setScale(1.8f,1.8f);
 
-    sf::Sprite player_sprite;
-    player_sprite.setTexture(player_texture);
-    player_sprite.setPosition(gracz.x,gracz.y);
-    // // //
+    // ==================
+    // PRZESZKODY
+    // ==================
+    std::vector<obiekty> przeszkody;
+    std::vector<int> skale;
 
-    // Przeszkody.
-    std::vector<obiekty> przeszkody_obiekt = {};
-    int przeszkody_ilosc = randint(50,150); // 50-150 przeszkod
-    for(int i = 0;i<przeszkody_ilosc; i++)
+    int ilosc = 120;
+    for(int i = 0; i < ilosc; i++)
     {
-        obiekty skala;
-        skala.x = randint(0,res[0]);
-        skala.y = -1 *(i * 30 + randint(0,100)) + 400;
-        przeszkody_obiekt.push_back(skala);
+        int s = randint(1, 5);
+        obiekty o;
+        o.x = randint(0, res[0]);
+        o.y = -i * 60;
+        o.max_hp = s * 10;
+        o.hp = o.max_hp;
 
+        przeszkody.push_back(o);
+        skale.push_back(s);
     }
-    sf::Sprite skala;
-    skala.setTexture(player_texture);
 
-    // // //
+    sf::Sprite przeszkoda(tex);
 
-    // Main loop
+    // ==================
+    // POCISKI
+    // ==================
+    std::vector<obiekty> pociski;
+    sf::Sprite pocisk(blast);
+    pocisk.setScale(0.4f, 0.4f);
+
+    // ==================
+    // UI
+    // ==================
+    sf::RectangleShape power_bg({200, 10});
+    sf::RectangleShape power({200, 10});
+    power_bg.setPosition(10, 10);
+    power.setPosition(10, 10);
+    power_bg.setFillColor(sf::Color(60,60,60));
+    power.setFillColor(sf::Color::Cyan);
+
+    sf::RectangleShape hp_bg({200, 10});
+    sf::RectangleShape hp_bar({200, 10});
+    hp_bg.setPosition(10, 30);
+    hp_bar.setPosition(10, 30);
+    hp_bg.setFillColor(sf::Color(60,0,0));
+    hp_bar.setFillColor(sf::Color::Red);
+
+    sf::RectangleShape mob_hp_bg({30, 4});
+    sf::RectangleShape mob_hp({30, 4});
+    mob_hp_bg.setFillColor(sf::Color(40,40,40));
+    mob_hp.setFillColor(sf::Color::Green);
+
+    // ==================
+    // LOOP
+    // ==================
     while(root.isOpen())
     {
-        sf::Event event;
- 
-        // Events
-        while(root.pollEvent(event))
+        sf::Event e;
+        while(root.pollEvent(e))
         {
-            if(event.type == sf::Event::Closed or sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
-            {
+            if(e.type == sf::Event::Closed or sf::Keyboard::isKeyPressed(sf::Keyboard::Q) or hp == 0)
                 root.close();
+        }
+
+        // ==================
+        // GAME OVER
+        // ==================
+        if(hp<=0)
+        {
+            root.close();
+            std::cout<<"Hp = 0 Przergales!!!" << std::endl;
+        }
+
+
+        // ==================
+        // NEW FORMY SJJ
+        // ==================
+        if(ki >100 and first)
+        {
+            first = false;
+            player.setTexture(ssj1);
+
+            power.setFillColor(sf::Color::Yellow);
+            max_ki = 150;
+            dmg = 4;
+            speed = 8;
+            sf::RectangleShape power_bg({350, 10});
+            power_bg.setPosition(10, 10);
+            power_bg.setFillColor(sf::Color(60,60,60));
+            speed_bullet = 4.f;
+
+
+        }
+        
+        if(ki > 250)
+        {
+            player.setTexture(ssjB);
+            power.setFillColor(sf::Color::Blue);
+            max_ki = 225;
+            dmg = 8;
+            speed = 16;
+            speed_bullet = 8.f;
+        }
+
+        // ==================
+        // RECHARGE
+        // ==================
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::F) and ki < max_ki and !(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)))
+        {
+            move = std::max(1.5f, move - 0.05f);
+            ki++;
+
+            // Kara za power
+            hp -= 0.1;
+            score -= 1;
+        }
+        else
+        {
+            move = std::min(3.f, move + 0.01f);
+        }
+
+        // ==================
+        // STRZELANIE
+        // ==================
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ki > 0)
+        {
+            obiekty p;
+            p.x = gracz.x + randint(-6,6) + 25;
+            p.y = gracz.y + 10;
+            pociski.push_back(p);
+            // Koszt za strzal
+            ki -= 2;
+        }
+
+
+
+        // ==================
+        // STEROWANIE
+        // ==================
+        sterowanie(gracz, tex.getSize());
+        player.setPosition(gracz.x, gracz.y);
+
+        // ==================
+        // UPDATE
+        // ==================
+        root.clear(sf::Color::Black);
+
+        // Przeszkody
+        for(int i = 0; i < przeszkody.size(); i++)
+        {
+            przeszkody[i].y += speed / skale[i];
+            przeszkoda.setScale(skale[i], skale[i]);
+            przeszkoda.setPosition(przeszkody[i].x, przeszkody[i].y);
+
+            // Kolizja z graczem
+            if(kolizja(player, przeszkoda))
+                hp--;
+
+            // HP BAR
+            float r = przeszkody[i].hp / przeszkody[i].max_hp;
+            mob_hp.setSize({30 * r, 4});
+            mob_hp_bg.setPosition(przeszkody[i].x, przeszkody[i].y - 6);
+            mob_hp.setPosition(przeszkody[i].x, przeszkody[i].y - 6);
+
+            root.draw(przeszkoda);
+            root.draw(mob_hp_bg);
+            root.draw(mob_hp);
+        }
+
+        // Pociski
+        for(int i = 0; i < pociski.size(); )
+        {
+            pociski[i].y -= speed_bullet * 5;
+
+            pocisk.setPosition(pociski[i].x, pociski[i].y);
+
+            bool hit = false;
+            for(int j = 0; j < przeszkody.size(); j++)
+            {
+                przeszkoda.setPosition(przeszkody[j].x, przeszkody[j].y);
+                if(kolizja(pocisk, przeszkoda))
+                {
+                    przeszkody[j].hp -= dmg;
+                    hit = true;
+                    break;
+                }
+            }
+
+            if(hit || pociski[i].y < 0)
+                pociski.erase(pociski.begin() + i);
+            else
+            {
+                root.draw(pocisk);
+                i++;
             }
         }
-        // // //
 
-        // Sterowanie WSAD +- move
-        sterowanie_obiekt(gracz);
-        player_sprite.setPosition(gracz.x, gracz.y);
-        // // //
-
-        // Drawing and refreshin screen
-        
-        root.clear(sf::Color(0,139,139));
-        
-        // Przeszkody
-        for(int i = 0;i<przeszkody_ilosc;i++)
+        // Usuwanie martwych
+        for(int i = 0; i < przeszkody.size(); )
         {
-            przeszkody_obiekt[i].y += speed;
-            
-            skala.setPosition(przeszkody_obiekt[i].x,przeszkody_obiekt[i].y);
-            skala.setScale(4,4);
-            root.draw(skala);
-        }
-        // // //
-        
-        root.draw(player_sprite);
-        root.display();
-        // // //
-    }
-    // // // 
+            if(przeszkody[i].hp <= 0)
+            {
+                przeszkody.erase(przeszkody.begin() + i);
+                skale.erase(skale.begin() + i);
+                ki += 25;
+                hp += 1;
+                score += 100;
 
+            }
+            else i++;
+        }
+
+        // UI
+        power.setSize({200 * (ki / 100.f), 10});
+        hp_bar.setSize({200 * (hp / 100.f), 10});
+
+        root.draw(power_bg);
+        root.draw(power);
+        root.draw(hp_bg);
+        root.draw(hp_bar);
+
+        root.draw(player);
+        root.display();
+    }
+    std::cout << "Twoj score to: "<< score << std::endl;
     return 0;
 }
-// Trzeba zrobić dużo obiektów nad okenm i poprostu będą spadać a jeśli będą poniżej swojej wysokości od dolenj krawędzi to wtedy mogą być już nie wyświetlane oraz na zaoszczędzenie pamięci nie muszą też spadać.
