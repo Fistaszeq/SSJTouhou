@@ -8,16 +8,19 @@
 // ==================
 float speed = 1.5f;
 float speed_bullet = 1.5f;
-float move = 3.f;
+float move = 12.f;
 float dmg = 2.f;
 
-float hp = 100;     // HP gracza
+float hp = 100;   // HP gracza
 int ki = 100;     // POWER
 int max_ki = 100;
 int score = 0;
 bool first = true;
-std::vector<int> res = {800, 900};
-std::string title = "Touhou-like";
+sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
+int a = 1600; //desktopMode.width /2;
+int b = 900; //desktopMode.height /2;
+std::vector<int> res = {a,b};
+std::string title = "SSjTouhou";
 
 // ==================
 // STRUKTURA OBIEKTU
@@ -35,11 +38,12 @@ struct obiekty
 // ==================
 int randint(int min, int max)
 {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
+    static std::random_device rd; // genereuje
+    static std::mt19937 gen(rd()); // 
     std::uniform_int_distribution<> dist(min, max);
     return dist(gen);
 }
+
 
 // ==================
 // KOLIZJA
@@ -69,7 +73,14 @@ void sterowanie(obiekty &g, sf::Vector2u size)
 // ==================
 int main()
 {
-    sf::RenderWindow root(sf::VideoMode(res[0], res[1]), title);
+
+
+    sf::RenderWindow root(sf::VideoMode(res[0],res[1]),"SSJTouhou");
+
+    
+    
+
+
     root.setFramerateLimit(60);
 
     // ==================
@@ -77,6 +88,9 @@ int main()
     // ==================
     sf::Texture tex;
     tex.loadFromFile("glaz2.png");
+
+    sf::Texture background;
+    background.loadFromFile("space.jpg");
 
     sf::Texture blast;
     blast.loadFromFile("white_roock.png");
@@ -105,11 +119,10 @@ int main()
     // ==================
     std::vector<obiekty> przeszkody;
     std::vector<int> skale;
-
-    int ilosc = 120;
+    int ilosc = 200;
     for(int i = 0; i < ilosc; i++)
     {
-        int s = randint(1, 5);
+        int s = randint(2,10);
         obiekty o;
         o.x = randint(0, res[0]);
         o.y = -i * 60;
@@ -128,6 +141,7 @@ int main()
     std::vector<obiekty> pociski;
     sf::Sprite pocisk(blast);
     pocisk.setScale(0.4f, 0.4f);
+    std::vector<int> niecelnosc;
 
     // ==================
     // UI
@@ -150,18 +164,26 @@ int main()
     sf::RectangleShape mob_hp({30, 4});
     mob_hp_bg.setFillColor(sf::Color(40,40,40));
     mob_hp.setFillColor(sf::Color::Green);
+    sf::Text score_screen;
 
     // ==================
     // LOOP
     // ==================
     while(root.isOpen())
     {
+
+        sf::Clock shootClock;
+        const sf::Time shootCooldown = sf::milliseconds(120);
+
         sf::Event e;
         while(root.pollEvent(e))
         {
-            if(e.type == sf::Event::Closed or sf::Keyboard::isKeyPressed(sf::Keyboard::Q) or hp == 0)
+            if(e.type == sf::Event::Closed or sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
                 root.close();
         }
+
+
+
 
         // ==================
         // GAME OVER
@@ -185,12 +207,10 @@ int main()
             max_ki = 150;
             dmg = 4;
             speed = 8;
-            sf::RectangleShape power_bg({350, 10});
+            power_bg.setSize({300, 10});
             power_bg.setPosition(10, 10);
             power_bg.setFillColor(sf::Color(60,60,60));
-            speed_bullet = 4.f;
-
-
+            // speed_bullet = 4.f;
         }
         
         if(ki > 250)
@@ -200,15 +220,17 @@ int main()
             max_ki = 225;
             dmg = 8;
             speed = 16;
-            speed_bullet = 8.f;
+            // speed_bullet = 8.f;
+            power_bg.setSize({375, 10});
         }
 
         // ==================
         // RECHARGE
         // ==================
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::F) and ki < max_ki and !(sf::Keyboard::isKeyPressed(sf::Keyboard::Space)))
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::F) and ki < max_ki and !(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) and hp>0))
         {
-            move = std::max(1.5f, move - 0.05f);
+            
+            
             ki++;
 
             // Kara za power
@@ -223,17 +245,18 @@ int main()
         // ==================
         // STRZELANIE
         // ==================
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ki > 0)
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) and ki > 0)
         {
             obiekty p;
-            p.x = gracz.x + randint(-6,6) + 25;
+            p.x = gracz.x + randint(-2,2) + 25;
             p.y = gracz.y + 10;
+            niecelnosc.push_back(randint(-2,2));
             pociski.push_back(p);
             // Koszt za strzal
-            ki -= 2;
+            // ki -= 2;
         }
 
-
+        
 
         // ==================
         // STEROWANIE
@@ -245,6 +268,9 @@ int main()
         // UPDATE
         // ==================
         root.clear(sf::Color::Black);
+        sf::Sprite back;
+        back.setTexture(background);
+        root.draw(back);
 
         // Przeszkody
         for(int i = 0; i < przeszkody.size(); i++)
@@ -272,7 +298,9 @@ int main()
         for(int i = 0; i < pociski.size(); )
         {
             pociski[i].y -= speed_bullet * 5;
-
+            pociski[i].x += speed_bullet *  niecelnosc[i];
+           
+            std::cout<<pociski.size()<<std::endl;
             pocisk.setPosition(pociski[i].x, pociski[i].y);
 
             bool hit = false;
@@ -322,7 +350,7 @@ int main()
 
         root.draw(player);
         root.display();
+    
     }
-    std::cout << "Twoj score to: "<< score << std::endl;
     return 0;
 }
