@@ -2,6 +2,12 @@
 #include <vector>
 #include <SFML/Graphics.hpp>
 #include <random>
+// =================
+// @author Fistaszeq
+// @graphics Iwa
+// =================
+
+
 
 // ==================
 // KONFIGURACJA
@@ -17,7 +23,7 @@ int max_ki = 100;
 int score = 0;
 bool first = true;
 sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
-int a = 1600; //desktopMode.width /2;
+int a = 1080; //desktopMode.width /2;
 int b = 900; //desktopMode.height /2;
 std::vector<int> res = {a,b};
 std::string title = "SSjTouhou";
@@ -25,6 +31,12 @@ std::string title = "SSjTouhou";
 // ==================
 // STRUKTURA OBIEKTU
 // ==================
+void test()
+{
+    std::cout<<"\nJestem tutaj"<<std::endl;
+}
+
+
 struct obiekty
 {
     float x;
@@ -36,7 +48,8 @@ struct obiekty
 // ==================
 // RANDOM
 // ==================
-int randint(int min, int max)
+float randint(int min, int max)
+
 {
     static std::random_device rd; // genereuje
     static std::mt19937 gen(rd()); // 
@@ -87,10 +100,10 @@ int main()
     // TEKSTURA
     // ==================
     sf::Texture tex;
-    tex.loadFromFile("glaz2.png");
+    tex.loadFromFile("glaz4.png");
 
     sf::Texture background;
-    background.loadFromFile("space.jpg");
+    background.loadFromFile("background.jpg");
 
     sf::Texture blast;
     blast.loadFromFile("white_roock.png");
@@ -122,7 +135,7 @@ int main()
     int ilosc = 200;
     for(int i = 0; i < ilosc; i++)
     {
-        int s = randint(2,10);
+        int s = randint(1,6);
         obiekty o;
         o.x = randint(0, res[0]);
         o.y = -i * 60;
@@ -165,6 +178,11 @@ int main()
     mob_hp_bg.setFillColor(sf::Color(40,40,40));
     mob_hp.setFillColor(sf::Color::Green);
     sf::Text score_screen;
+        
+    sf::Sprite back;
+    back.setTexture(background);
+    float background_y = 1000; 
+    int shooting = 1;
 
     // ==================
     // LOOP
@@ -181,9 +199,17 @@ int main()
             if(e.type == sf::Event::Closed or sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
                 root.close();
         }
+        background_y -= 0.5;
+        back.setPosition(0,background_y);
 
-
-
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
+        {
+            shooting = 1;
+        }
+        else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
+        {
+            shooting = 2;
+        }
 
         // ==================
         // GAME OVER
@@ -191,7 +217,7 @@ int main()
         if(hp<=0)
         {
             root.close();
-            std::cout<<"Hp = 0 Przergales!!!" << std::endl;
+            std::cout<<"Hp = 0 Przergales!!!" << " Twoj score to: "<< score << std::endl;
         }
 
 
@@ -232,14 +258,9 @@ int main()
             
             
             ki++;
-
             // Kara za power
             hp -= 0.1;
             score -= 1;
-        }
-        else
-        {
-            move = std::min(3.f, move + 0.01f);
         }
 
         // ==================
@@ -247,13 +268,33 @@ int main()
         // ==================
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) and ki > 0)
         {
+            if(shooting == 1)
+            {
             obiekty p;
             p.x = gracz.x + randint(-2,2) + 25;
-            p.y = gracz.y + 10;
-            niecelnosc.push_back(randint(-2,2));
+            p.y = gracz.y + 10 + randint(-5,5);
+            niecelnosc.push_back(randint(-1,1));
+            pociski.push_back(p);
+            
+            
+            // Koszt za strzal
+            ki -= 2;
+            }
+
+
+            else if(shooting == 2)
+            {
+            
+            obiekty p;
+            p.x = gracz.x + randint(-10,10) + 25;
+            p.y = gracz.y + 10+ randint(-5,5);
+
+            niecelnosc.push_back(0);
             pociski.push_back(p);
             // Koszt za strzal
-            // ki -= 2;
+            ki -= 3;
+ 
+            }
         }
 
         
@@ -267,11 +308,12 @@ int main()
         // ==================
         // UPDATE
         // ==================
+        
         root.clear(sf::Color::Black);
-        sf::Sprite back;
-        back.setTexture(background);
         root.draw(back);
-
+        
+        
+        
         // Przeszkody
         for(int i = 0; i < przeszkody.size(); i++)
         {
@@ -300,7 +342,7 @@ int main()
             pociski[i].y -= speed_bullet * 5;
             pociski[i].x += speed_bullet *  niecelnosc[i];
            
-            std::cout<<pociski.size()<<std::endl;
+            std::cout<<pociski.size()<< " typy shootingu: "<< shooting<<std::endl;
             pocisk.setPosition(pociski[i].x, pociski[i].y);
 
             bool hit = false;
