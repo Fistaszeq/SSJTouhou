@@ -13,4 +13,7 @@ Wymagania:
 Przykład kompilacji:
 ```sh
 g++ SSJTouhou.cpp -o SSJTouhou -lsfml-graphics -lsfml-window -lsfml-system
+```
+
+```xml
 <img src="" alt="test">
