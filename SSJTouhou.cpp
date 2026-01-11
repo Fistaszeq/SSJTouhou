@@ -14,14 +14,15 @@
 // ==================
 float speed = 1.5f;
 float speed_bullet = 1.5f;
-float move = 12.f;
+float move = 8.f; // Our move
 float dmg = 2.f;
+int score = 0;
 
 float hp = 100;   // HP gracza
 int ki = 100;     // POWER
 int max_ki = 100;
-int score = 0;
-bool first = true;
+
+
 sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
 int a = 1080; //desktopMode.width /2;
 int b = 900; //desktopMode.height /2;
@@ -48,8 +49,7 @@ struct obiekty
 // ==================
 // RANDOM
 // ==================
-float randint(int min, int max)
-
+int randint(int min, int max)
 {
     static std::random_device rd; // genereuje
     static std::mt19937 gen(rd()); // 
@@ -88,25 +88,35 @@ int main()
 {
 
 
+    sf::Clock cooldownClock;
+    const sf::Time cooldownTime05 = sf::seconds(0.5f); // 500ms cooldown
+    const sf::Time cooldownTime005 = sf::seconds(0.05f); // 50ms cooldown
+
+
     sf::RenderWindow root(sf::VideoMode(res[0],res[1]),"SSJTouhou");
-
-    
-    
-
 
     root.setFramerateLimit(60);
 
     // ==================
-    // TEKSTURA
-    // ==================
+    // TEKSTURY
     sf::Texture tex;
     tex.loadFromFile("glaz4.png");
 
     sf::Texture background;
     background.loadFromFile("background.jpg");
+    sf::Texture bg_water;
+    bg_water.loadFromFile("bg_water0.jpeg");
 
-    sf::Texture blast;
-    blast.loadFromFile("white_roock.png");
+    sf::Texture blast0;
+    blast0.loadFromFile("ki_blast_0.png");
+
+    sf::Texture blast1;
+    blast1.loadFromFile("ki_blast_1.png");
+
+    sf::Texture blast2;
+    blast2.loadFromFile("ki_blast_2.png");
+
+
 
     sf::Texture baze;
     baze.loadFromFile("Goku-1.png.png");
@@ -116,20 +126,34 @@ int main()
 
     sf::Texture ssjB;
     ssjB.loadFromFile("Goku-3.png.png");
+    // ==================
+
 
     // ==================
     // GRACZ
-    // ==================
     obiekty gracz;
     gracz.x = res[0] / 2;
     gracz.y = res[1] - 100;
 
     sf::Sprite player(baze);
     player.setScale(1.8f,1.8f);
+    // ==================
+    
+
+
+    // ==================
+    // Text
+    sf::Font fiseye;
+    fiseye.loadFromFile("Noserta.otf");
+    sf::Text socre_text;
+    socre_text.setPosition(15,50);
+    socre_text.setFillColor(sf::Color::Yellow);
+    socre_text.setFont(fiseye);
+    socre_text.setCharacterSize(30);
+    // ==================
 
     // ==================
     // PRZESZKODY
-    // ==================
     std::vector<obiekty> przeszkody;
     std::vector<int> skale;
     int ilosc = 200;
@@ -145,31 +169,37 @@ int main()
         przeszkody.push_back(o);
         skale.push_back(s);
     }
-
     sf::Sprite przeszkoda(tex);
+    // ==================
 
     // ==================
     // POCISKI
-    // ==================
     std::vector<obiekty> pociski;
-    sf::Sprite pocisk(blast);
-    pocisk.setScale(0.4f, 0.4f);
+    sf::Sprite pocisk(blast0);
+    pocisk.setScale(1.2f,1.2f);
     std::vector<int> niecelnosc;
+    // ==================
+
 
     // ==================
     // UI
-    // ==================
+    sf::Text power_text;
+    power_text.setFont(fiseye);
+    power_text.setCharacterSize(10);
+    power_text.setFillColor(sf::Color::Black);
+    power_text.setPosition({60,10});
+
     sf::RectangleShape power_bg({200, 10});
     sf::RectangleShape power({200, 10});
-    power_bg.setPosition(10, 10);
-    power.setPosition(10, 10);
+    power_bg.setPosition(60, 10);
+    power.setPosition(60, 10);
     power_bg.setFillColor(sf::Color(60,60,60));
     power.setFillColor(sf::Color::Cyan);
 
     sf::RectangleShape hp_bg({200, 10});
     sf::RectangleShape hp_bar({200, 10});
-    hp_bg.setPosition(10, 30);
-    hp_bar.setPosition(10, 30);
+    hp_bg.setPosition(60, 30);
+    hp_bar.setPosition(60, 30);
     hp_bg.setFillColor(sf::Color(60,0,0));
     hp_bar.setFillColor(sf::Color::Red);
 
@@ -180,9 +210,36 @@ int main()
     sf::Text score_screen;
         
     sf::Sprite back;
-    back.setTexture(background);
-    float background_y = 1000; 
+    back.setTexture(bg_water);
+    float background_y = 0; 
     int shooting = 1;
+    bool czySSJ = false;
+    bool czySSJB = false;
+    float bg_move = 0.5;
+
+
+    // Ikonka formy
+    float image = 5;
+    sf::Vector2f pozycja_image = {50,50};
+    sf::Sprite ui_ki_0;
+    ui_ki_0.setTexture(blast0);
+    ui_ki_0.rotate(180);
+    ui_ki_0.setPosition(pozycja_image);
+    ui_ki_0.setScale(image,image);
+
+    sf::Sprite ui_ki_1;
+    ui_ki_1.setTexture(blast1);
+    ui_ki_1.setRotation(180);
+    ui_ki_1.setPosition(pozycja_image);
+    ui_ki_1.setScale(image,image);
+
+    sf::Sprite ui_ki_2;
+    ui_ki_2.setTexture(blast2);
+    ui_ki_2.setRotation(180);
+    ui_ki_2.setPosition(pozycja_image);
+    ui_ki_2.setScale(image,image);
+    // -- -- -- -- -- -- --
+    // ==================
 
     // ==================
     // LOOP
@@ -197,70 +254,115 @@ int main()
         while(root.pollEvent(e))
         {
             if(e.type == sf::Event::Closed or sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+            {
                 root.close();
-        }
-        background_y -= 0.5;
-        back.setPosition(0,background_y);
+            }
 
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
-        {
-            shooting = 1;
+            
+            // ==================
+            // Typy Strzelania
+            // ==================
+            if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num1))
+            {
+                shooting = 1;
+            }
+            else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
+            {
+                shooting = 2;
+            }
+            else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num3))
+            {
+                shooting = 3;
+            }
         }
-        else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Num2))
+
+        // Precyzyjne poruszanie sie
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
         {
-            shooting = 2;
+            move = 4.f;
         }
+        else {
+            move = 8.f;
+        }
+        // -- -- -- --
+
+        // Background Przesowanie
+        if (background_y > 200 and bg_move > -0.5)
+        {
+            bg_move -= 0.005;
+        }
+        background_y += bg_move;
+        back.setPosition(0,background_y);
+        // -- -- -- -- 
+
+
 
         // ==================
         // GAME OVER
-        // ==================
         if(hp<=0)
         {
             root.close();
             std::cout<<"Hp = 0 Przergales!!!" << " Twoj score to: "<< score << std::endl;
         }
+        // ==================
+
 
 
         // ==================
         // NEW FORMY SJJ
-        // ==================
-        if(ki >100 and first)
+        if(score > 2500)
         {
-            first = false;
+            player.setTexture(ssjB);
+            pocisk.setTexture(blast2);
+            power.setFillColor(sf::Color::Blue);
+            max_ki = 225;
+            dmg = 6;
+            speed = 12;
+            power_bg.setSize({450, 10});
+        }
+        
+        else if(score > 400)
+        {
             player.setTexture(ssj1);
+            pocisk.setTexture(blast1);
 
             power.setFillColor(sf::Color::Yellow);
             max_ki = 150;
             dmg = 4;
-            speed = 8;
+            speed = 6;
             power_bg.setSize({300, 10});
-            power_bg.setPosition(10, 10);
-            power_bg.setFillColor(sf::Color(60,60,60));
-            // speed_bullet = 4.f;
         }
         
-        if(ki > 250)
-        {
-            player.setTexture(ssjB);
-            power.setFillColor(sf::Color::Blue);
-            max_ki = 225;
-            dmg = 8;
-            speed = 16;
-            // speed_bullet = 8.f;
-            power_bg.setSize({375, 10});
+        else {
+            player.setTexture(baze);
+            pocisk.setTexture(blast0);
+            max_ki = 100;
+            dmg = 2;
+            speed = 4;
+            power_bg.setSize({200,10});
+            power.setFillColor(sf::Color::Cyan);
         }
-
+        // ==================
+        
+        
         // ==================
         // RECHARGE
         // ==================
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::F) and ki < max_ki and !(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) and hp>0))
         {
-            
-            
             ki++;
             // Kara za power
             hp -= 0.1;
-            score -= 1;
+            if(!(score <= 0))
+            {
+                int i = randint(1,4);
+                if(i == 1)
+                {
+                    score -= 1;
+                }
+                
+            }
+
         }
 
         // ==================
@@ -268,50 +370,76 @@ int main()
         // ==================
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) and ki > 0)
         {
-            if(shooting == 1)
+            if(shooting == 1 and ki>=20) 
             {
-            obiekty p;
-            p.x = gracz.x + randint(-2,2) + 25;
-            p.y = gracz.y + 10 + randint(-5,5);
-            niecelnosc.push_back(randint(-1,1));
-            pociski.push_back(p);
-            
-            
-            // Koszt za strzal
-            ki -= 2;
+                if (cooldownClock.getElapsedTime() >= cooldownTime05)
+                {
+                    for(int i = 0;i<randint(7,8);i++)
+                    {
+                        obiekty p;
+                        // Respienie sie pociskow
+                        p.x = gracz.x + randint(-10,10) + 25;
+                        p.y = gracz.y + 10 + randint(-10,10);
+                        // - - - - - 
+
+                        niecelnosc.push_back(randint(-1,1));
+                        pociski.push_back(p);
+                    }
+                    // Koszt za strzal
+                    ki -= 20;
+                    cooldownClock.restart(); // Resetuj licznik
+                }
+
+                else if(ki < 20) {
+                    shooting = 2;
+                }  
             }
 
 
-            else if(shooting == 2)
-            {
             
-            obiekty p;
-            p.x = gracz.x + randint(-10,10) + 25;
-            p.y = gracz.y + 10+ randint(-5,5);
+                
 
-            niecelnosc.push_back(0);
-            pociski.push_back(p);
-            // Koszt za strzal
-            ki -= 3;
- 
+            else if(shooting == 2 and ki >= 2)
+            {
+            // Ten mocniejszy
+                if(cooldownClock.getElapsedTime() >= cooldownTime005)
+                {
+                    for(int i =0;i<1;i++)
+                    {
+                        obiekty p;
+                        // Respienie sie pociskow
+                        p.x = gracz.x + randint(-10,10) + 25;
+                        p.y = gracz.y + 10;
+                        // - - - - - - -
+                        niecelnosc.push_back(randint(-1,1));
+                        pociski.push_back(p);
+
+                    }
+                    ki -= 2;
+                    cooldownClock.restart();
+                }
             }
+
+            
+                
+            
         }
 
         
 
         // ==================
         // STEROWANIE
-        // ==================
-        sterowanie(gracz, tex.getSize());
+        sterowanie(gracz, baze.getSize());
         player.setPosition(gracz.x, gracz.y);
+        // ==================
+        
+
 
         // ==================
         // UPDATE
-        // ==================
-        
         root.clear(sf::Color::Black);
         root.draw(back);
-        
+        // ==================      
         
         
         // Przeszkody
@@ -323,11 +451,13 @@ int main()
 
             // Kolizja z graczem
             if(kolizja(player, przeszkoda))
+            {
                 hp--;
+            }
 
             // HP BAR
             float r = przeszkody[i].hp / przeszkody[i].max_hp;
-            mob_hp.setSize({30 * r, 4});
+            mob_hp.setSize({25 * r * skale[i], 4});
             mob_hp_bg.setPosition(przeszkody[i].x, przeszkody[i].y - 6);
             mob_hp.setPosition(przeszkody[i].x, przeszkody[i].y - 6);
 
@@ -339,16 +469,25 @@ int main()
         // Pociski
         for(int i = 0; i < pociski.size(); )
         {
+            // Ruch
             pociski[i].y -= speed_bullet * 5;
-            pociski[i].x += speed_bullet *  niecelnosc[i];
+            pociski[i].x += niecelnosc[i];
+            // - - - - - - - - -
            
-            std::cout<<pociski.size()<< " typy shootingu: "<< shooting<<std::endl;
+            
             pocisk.setPosition(pociski[i].x, pociski[i].y);
+            if(shooting == 3)
+            {
+                pocisk.setScale(3.f,3.f);
+            }
+
 
             bool hit = false;
             for(int j = 0; j < przeszkody.size(); j++)
             {
+                przeszkoda.setScale(skale[j],skale[j]);
                 przeszkoda.setPosition(przeszkody[j].x, przeszkody[j].y);
+                
                 if(kolizja(pocisk, przeszkoda))
                 {
                     przeszkody[j].hp -= dmg;
@@ -356,6 +495,7 @@ int main()
                     break;
                 }
             }
+
 
             if(hit || pociski[i].y < 0)
                 pociski.erase(pociski.begin() + i);
@@ -371,11 +511,12 @@ int main()
         {
             if(przeszkody[i].hp <= 0)
             {
+                // Przywileje za zabicie
                 przeszkody.erase(przeszkody.begin() + i);
                 skale.erase(skale.begin() + i);
-                ki += 25;
-                hp += 1;
-                score += 100;
+                ki += 6 * skale[i];
+                hp += 1 * skale[i];
+                score += 25 * skale[i];
 
             }
             else i++;
@@ -387,10 +528,31 @@ int main()
 
         root.draw(power_bg);
         root.draw(power);
+        power_text.setString(std::to_string(ki));
+        root.draw(power_text);
         root.draw(hp_bg);
         root.draw(hp_bar);
 
         root.draw(player);
+
+
+        sf::String pkt = "Score: " + std::to_string(score) + "\n SSJ -> 400 \n SSJ Blue -> 2500";
+        socre_text.setString(pkt);
+        root.draw(socre_text);  
+
+        if(score > 2500)
+        {
+            root.draw(ui_ki_2);
+        }
+        else if(score > 400)
+        {
+            root.draw(ui_ki_1);
+        }
+        else 
+        {
+            root.draw(ui_ki_0);
+        }
+
         root.display();
     
     }
