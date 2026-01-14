@@ -8,7 +8,7 @@ Bullet-hell shooter inspirowany **Touhou Project** oraz **Dragon Ball** (formy S
 
 Miejsce na gifa z rozgrywki:
 
-![Gameplay GIF](gifs/gameplay.gif)
+![Gameplay GIF](/gra_ssj1.png)
 
 ---
 
