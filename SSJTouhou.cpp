@@ -21,6 +21,7 @@ int score = 0;
 float hp = 100;   // HP gracza
 int ki = 100;     // POWER
 int max_ki = 100;
+int meters = 0;
 
 
 sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
@@ -91,6 +92,9 @@ int main()
     sf::Clock cooldownClock;
     const sf::Time cooldownTime05 = sf::seconds(0.5f); // 500ms cooldown
     const sf::Time cooldownTime005 = sf::seconds(0.05f); // 50ms cooldown
+    
+    sf::Clock distanse_timer;
+    const sf::Time distanse_cooldown_025s = sf::seconds(0.25f); // co 1 sek 1 metr
 
 
     sf::RenderWindow root(sf::VideoMode(res[0],res[1]),"SSJTouhou");
@@ -99,13 +103,24 @@ int main()
 
     // ==================
     // TEKSTURY
-    sf::Texture tex;
-    tex.loadFromFile("glaz4.png");
+    sf::Texture glaz_texture;
+    glaz_texture.loadFromFile("glaz4.png");
 
-    sf::Texture background;
-    background.loadFromFile("background.jpg");
+
+    sf::Texture chmura_texture;
+    chmura_texture.loadFromFile("chmura-1.png");
+
+    sf::Texture all;
+    all.loadFromFile("background.png");
+
+    sf::Texture bg_space;
+    bg_space.loadFromFile("bg_space.jpg");
+
     sf::Texture bg_water;
-    bg_water.loadFromFile("bg_water0.jpeg");
+    bg_water.loadFromFile("bg_water.jpeg");
+
+    sf::Texture bg_water_end;
+    bg_water_end.loadFromFile("bg_water_end.jpeg");
 
     sf::Texture blast0;
     blast0.loadFromFile("ki_blast_0.png");
@@ -135,7 +150,8 @@ int main()
     gracz.x = res[0] / 2;
     gracz.y = res[1] - 100;
 
-    sf::Sprite player(baze);
+    sf::Sprite player;
+    player.setTexture(baze);
     player.setScale(1.8f,1.8f);
     // ==================
     
@@ -161,7 +177,7 @@ int main()
     {
         int s = randint(1,6);
         obiekty o;
-        o.x = randint(0, res[0]);
+        o.x = randint(0, res[0]-30);
         o.y = -i * 60;
         o.max_hp = s * 10;
         o.hp = o.max_hp;
@@ -169,7 +185,7 @@ int main()
         przeszkody.push_back(o);
         skale.push_back(s);
     }
-    sf::Sprite przeszkoda(tex);
+    sf::Sprite przeszkoda(chmura_texture);
     // ==================
 
     // ==================
@@ -210,14 +226,22 @@ int main()
     sf::Text score_screen;
         
     sf::Sprite back;
-    back.setTexture(bg_water);
-    float background_y = 0; 
+    float background_y = -5800; // -5800
+    back.setTexture(all);
     int shooting = 1;
     bool czySSJ = false;
     bool czySSJB = false;
-    float bg_move = 0.5;
+    float bg_move = 1.5;
+    float back_x = 0;
+
+    // Win text
+    sf::Text win_text;
+    win_text.setString("WYGRAŁEŚ!!!");
+    win_text.setPosition(res[0]/2,res[1]/2);
+    win_text.setFont(fiseye);
 
 
+   
     // Ikonka formy
     float image = 5;
     sf::Vector2f pozycja_image = {50,50};
@@ -238,18 +262,16 @@ int main()
     ui_ki_2.setRotation(180);
     ui_ki_2.setPosition(pozycja_image);
     ui_ki_2.setScale(image,image);
+    bool win = false;
     // -- -- -- -- -- -- --
     // ==================
+
 
     // ==================
     // LOOP
     // ==================
     while(root.isOpen())
     {
-
-        sf::Clock shootClock;
-        const sf::Time shootCooldown = sf::milliseconds(120);
-
         sf::Event e;
         while(root.pollEvent(e))
         {
@@ -276,6 +298,31 @@ int main()
             }
         }
 
+        // ============
+        // Dystants
+        
+        if(distanse_timer.getElapsedTime() >= distanse_cooldown_025s)
+        {
+            meters += 1;
+            distanse_timer.restart();
+            background_y -= 0.01;
+        }
+
+        
+        // if(meters > 100)
+        // {
+        //     // back.setTexture(bg_water_end);
+        //     // back_x = bg_water_end.getSize().x;
+        // }
+        // else {  
+        //     back.setTexture(bg_water);
+        //     // back_x = bg_water.getSize().x;
+        // }
+        
+        
+
+        // ============
+
         // Precyzyjne poruszanie sie
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))
         {
@@ -287,24 +334,27 @@ int main()
         // -- -- -- --
 
         // Background Przesowanie
-        if (background_y > 200 and bg_move > -0.5)
-        {
-            bg_move -= 0.005;
-        }
         background_y += bg_move;
-        back.setPosition(0,background_y);
         // -- -- -- -- 
 
 
 
         // ==================
         // GAME OVER
-        if(hp<=0)
+        if(hp<=0 or sf::Keyboard::isKeyPressed(sf::Keyboard::G))
         {
+            // std::getchar();
             root.close();
             std::cout<<"Hp = 0 Przergales!!!" << " Twoj score to: "<< score << std::endl;
         }
         // ==================
+
+        // ==================
+        // YOU WIN
+        if(background_y >= 0)
+        {
+            bool win = true;
+        }
 
 
 
@@ -370,7 +420,7 @@ int main()
         // ==================
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Space) and ki > 0)
         {
-            if(shooting == 1 and ki>=20) 
+            if(shooting == 1 and ki>=15) 
             {
                 if (cooldownClock.getElapsedTime() >= cooldownTime05)
                 {
@@ -386,11 +436,11 @@ int main()
                         pociski.push_back(p);
                     }
                     // Koszt za strzal
-                    ki -= 20;
+                    ki -= 15;
                     cooldownClock.restart(); // Resetuj licznik
                 }
 
-                else if(ki < 20) {
+                if(ki <= 15) {
                     shooting = 2;
                 }  
             }
@@ -415,7 +465,7 @@ int main()
                         pociski.push_back(p);
 
                     }
-                    ki -= 2;
+                    ki -= 3;
                     cooldownClock.restart();
                 }
             }
@@ -434,11 +484,25 @@ int main()
         // ==================
         
 
+ 
 
         // ==================
         // UPDATE
         root.clear(sf::Color::Black);
+
+        back.setPosition(0,background_y);
         root.draw(back);
+
+        if(win)
+        {
+            root.draw(win_text);
+            win_text.setString("nacisnij h to continue");
+            win_text.move({3,15});
+            root.draw(win_text);
+            std::getchar();
+            
+        }
+        std::cout<<background_y << std::endl;
         // ==================      
         
         
@@ -453,11 +517,14 @@ int main()
             if(kolizja(player, przeszkoda))
             {
                 hp--;
+                przeszkody[i].hp --;
             }
 
             // HP BAR
             float r = przeszkody[i].hp / przeszkody[i].max_hp;
+            
             mob_hp.setSize({25 * r * skale[i], 4});
+            mob_hp_bg.setSize({25.f * skale[i],4});
             mob_hp_bg.setPosition(przeszkody[i].x, przeszkody[i].y - 6);
             mob_hp.setPosition(przeszkody[i].x, przeszkody[i].y - 6);
 
@@ -535,8 +602,8 @@ int main()
 
         root.draw(player);
 
-
-        sf::String pkt = "Score: " + std::to_string(score) + "\n SSJ -> 400 \n SSJ Blue -> 2500";
+        sf::String meters_str = std::to_string(meters);
+        sf::String pkt = "Score: " + std::to_string(score) + "\n SSJ -> 400 \n SSJ Blue -> 2500" +"\n Dystans: " +meters_str;
         socre_text.setString(pkt);
         root.draw(socre_text);  
 
