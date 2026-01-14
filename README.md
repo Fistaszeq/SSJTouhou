@@ -97,10 +97,6 @@ SSJTouhou/
 ├── ki_blast_1.png
 ├── ki_blast_2.png
 ├── Noserta.otf
-└── gifs/
-    ├── gameplay.gif
-    ├── forms.gif
-    └── dev.gif
 ```
 
 ---
