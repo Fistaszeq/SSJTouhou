@@ -112,9 +112,6 @@ SSJTouhou/
 
 Projekt hobbystyczny / edukacyjny. Kod może zawierać uproszczenia i niedociągnięcia. Możliwa dalsza rozbudowa.
 
-Miejsce na gifa z procesu tworzenia lub testów:
-
-![Dev GIF](gifs/dev.gif)
 
 ---
 
