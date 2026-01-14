@@ -50,9 +50,6 @@ SSJ Touhou to zręcznościowa gra typu bullet-hell, w której gracz steruje post
 | SSJ      | 400            | 4         | 150      |
 | SSJ Blue | 2500           | 6         | 225      |
 
-Miejsce na gifa prezentującego transformacje:
-
-![Forms GIF](gifs/forms.gif)
 
 ---
 
